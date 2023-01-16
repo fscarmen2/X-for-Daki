@@ -14,9 +14,7 @@
 ## 项目特点:
 * 本项目用于在 [Daki.cc](https://daki.cc/) 免费服务上部署 VLESS
 * 集成哪吒探针，可以自由选择是否安装
-* 因为给到的端口不在 Cloudflare 的免费服务回源端口列表里，所以不能用 cdn 或者 workers
-* Cloudflare HTTP流量可以使用的回源端口如下：80、8080、8880、2052、2082、2086、2095
-* Cloudflare HTTPS流量可以使用的回源端口如下：443、2053、2083、2087、2096、8443
+* 部署完成如发现不能上网，请检查域名是否被墙，可使用 Cloudflare CDN 或者 worker 解决。参照文章：https://www.hicairo.com/post/57.html
 
 ## 部署:
 * 注册 [Daki.cc](https://daki.cc/)
@@ -85,7 +83,8 @@
 
 
 ## 鸣谢下列作者的文章和项目:
-大佬 Nike Jeff
+大佬 Nike Jeff 的项目文件
+HiFeng'Blog: https://www.hicairo.com/post/57.html
 
 ## 免责声明:
 * 本程序仅供学习了解, 非盈利目的，请于下载后 24 小时内删除, 不得用作任何商业用途, 文字、数据及图片均有所属版权, 如转载须注明来源。
