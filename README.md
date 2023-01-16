@@ -63,9 +63,6 @@
   
 <img width="1198" alt="image" src="https://user-images.githubusercontent.com/62703343/212587534-a250a9ce-d1c8-4dca-b10d-5730f84ba26f.png">
   
-  
-<img width="1480" alt="image" src="https://user-images.githubusercontent.com/62703343/212585360-eab39944-37ca-452f-8b9f-afbe6f1d005f.png">
-  
 
 <img width="1480" alt="image" src="https://user-images.githubusercontent.com/62703343/212587861-14fd3485-b3fa-42d8-9b13-d48c59451a2a.png">
 
