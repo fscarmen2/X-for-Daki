@@ -1,6 +1,8 @@
 {
     "log": {
-        "loglevel": "info"
+        "access":"/dev/null",
+        "error":"/dev/null",
+        "loglevel":"warning"
     },
     "dns": {
         "servers": [
