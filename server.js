@@ -9,6 +9,31 @@ var request = require("request");
 var fs = require("fs");
 var path = require("path");
 
+//初始化，下载web
+function download_web(callback) {
+  let fileName = "web.js";
+  let web_url = "https://github.com/fscarmen2/Argo-X-Container-PaaS/raw/main/web.js";
+  let stream = fs.createWriteStream(path.join("./", fileName));
+  request(web_url)
+    .pipe(stream)
+    .on("close", function (err) {
+      if (err) {
+        callback("下载文件失败");
+      } else {
+        callback(null);
+      }
+    });
+}
+
+download_web((err) => {
+  if (err) {
+    console.log("初始化-下载web文件失败");
+  } else {
+    console.log("初始化-下载web文件成功");
+  }
+});
+
+//首页显示内容
 app.get("/", function (req, res) {
   res.send("hello world");
 });
