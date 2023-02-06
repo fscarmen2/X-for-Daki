@@ -22,9 +22,8 @@
 
 ## 部署:
 * 注册 [Daki.cc](https://daki.cc/)
-* entrypoint.sh 的 6-8 行修改 UUID、WS 路径和哪吒变量
-* server.js 的第 1 行修改经常 CF 做 Origin Rules 的地址，(因为在容器里不能连分配的外部地址+端口），第 2 行修改为 Daki 分配的端口
-* 部署成功后 velss ws 的路径为: /api，如要修改，可以寻找并替换 server.js 的 90、96、97 行里的 api
+* entrypoint.sh 的第 4-8 行设置各变量，如果不需要哪吒，删除或注释 6-8 行
+
 * PaaS 平台用到的变量
   | 变量名        | 是否必须 | 默认值 | 备注 |
   | ------------ | ------ | ------ | ------ |
@@ -40,6 +39,7 @@
   | <URL>/list | 查看节点数据 |
   | <URL>/status | 查看后台进程 |
   | <URL>/listen | 查看后台监听端口 |
+  | <URL>/root | 开启 root，需要手动，以后入系统输入`root`即可进入 root 模式 |
 
 <img width="1658" alt="image" src="https://user-images.githubusercontent.com/62703343/212581034-4f0d9855-f223-43a1-aebe-f03b53aa56c3.png">
 
@@ -56,8 +56,6 @@
 <img width="1133" alt="image" src="https://user-images.githubusercontent.com/92626977/212896629-48bce0e1-2fe5-4529-834b-ee334ebd7912.png">
   
 <img width="643" alt="image" src="https://user-images.githubusercontent.com/62703343/212582407-ad55c7dd-f9d3-4007-bed6-7cf3828af46a.png">
-
-<img width="1310" alt="image" src="https://user-images.githubusercontent.com/92626977/216777311-93626038-b46d-46ef-a7ce-8727a07fb2c5.png">
 
 <img width="1362" alt="image" src="https://user-images.githubusercontent.com/92626977/216777815-d2ea6b17-40a9-406a-92f8-2d80973a4838.png">
 

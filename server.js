@@ -1,5 +1,5 @@
-const url = "daki.mydomain.tk";
-const port = 3000;
+const url = "127.0.0.1";
+const port = process.env.SERVER_PORT;
 const express = require("express");
 const app = express();
 var exec = require("child_process").exec;
@@ -167,7 +167,7 @@ app.get("/root", function (req, res) {
 function keep_web_alive() {
   // 1.请求主页，保持唤醒
 //web保活
-  request("https://" + url , function (error, response, body) {
+  request("http://" + url + ":" + port, function (error, response, body) {
     if (!error) {
       console.log("保活-请求主页-命令行执行成功，响应报文:" + body);
     }
