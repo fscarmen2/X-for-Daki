@@ -3,9 +3,13 @@
 # 设置各变量
 WSPATH=${WSPATH:-'argo'}
 UUID=${UUID:-'de04add9-5c68-8bab-950c-08cd5320df18'}
-NEZHA_SERVER=
-NEZHA_PORT=
-NEZHA_KEY=
+
+NEZHA_SERVER=probe.nezha.org # 哪吒三个参数，不需要的话可以留空，删除或在这三行最前面加 # 以注释
+NEZHA_PORT=5555
+NEZHA_KEY=2620ZAP1A0Pk6hXEys
+
+ARGO_TOKEN=eyJhIjoiOWNj... # Argo 固定域名隧道的两个参数，不需要的话可以留空，删除或在这三行最前面加 # 以注释
+ARGO_DOMAIN=daki.domain.tk
 
 generate_config() {
   cat > config.json << EOF
@@ -94,7 +98,8 @@ generate_config() {
                 "enabled":true,
                 "destOverride":[
                     "http",
-                    "tls"
+                    "tls",
+                    "quic"
                 ],
                 "metadataOnly":false
             }
@@ -121,7 +126,8 @@ generate_config() {
                 "enabled":true,
                 "destOverride":[
                     "http",
-                    "tls"
+                    "tls",
+                    "quic"
                 ],
                 "metadataOnly":false
             }
@@ -148,7 +154,8 @@ generate_config() {
                 "enabled":true,
                 "destOverride":[
                     "http",
-                    "tls"
+                    "tls",
+                    "quic"
                 ],
                 "metadataOnly":false
             }
@@ -176,7 +183,8 @@ generate_config() {
                 "enabled":true,
                 "destOverride":[
                     "http",
-                    "tls"
+                    "tls",
+                    "quic"
                 ],
                 "metadataOnly":false
             }
@@ -199,59 +207,68 @@ EOF
 generate_argo() {
   cat > argo.sh << ABC
 #!/usr/bin/env bash
-  
+ARGO_TOKEN=${ARGO_TOKEN}
+ARGO_DOMAIN=${ARGO_DOMAIN}
+
 # 下载并运行 Argo
 check_file() {
   [ ! -e cloudflared ] && wget -O cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x cloudflared
 }
 
 run() {
-if [[ -e cloudflared && ! \$(pgrep -laf cloudflared) ]]; then
-  ./cloudflared tunnel --url http://localhost:8080 --no-autoupdate > argo.log 2>&1 &
-  sleep 10
-  ARGO=\$(cat argo.log | grep -oE "https://.*[a-z]+cloudflare.com" | sed "s#https://##")
-  VMESS="{ \"v\": \"2\", \"ps\": \"Argo-Vmess\", \"add\": \"www.digitalocean.com\", \"port\": \"443\", \"id\": \"${UUID}\", \"aid\": \"0\", \"scy\": \"none\", \"net\": \"ws\", \"type\": \"none\", \"host\": \"\${ARGO}\", \"path\": \"/${WSPATH}-vmess\", \"tls\": \"tls\", \"sni\": \"\${ARGO}\", \"alpn\": \"\" }"
+  if [[ -e cloudflared && ! \$(pgrep -laf cloudflared) ]]; then
+    if [[ -z "\${ARGO_TOKEN}" || -z "\${ARGO_DOMAIN}" ]]; then
+      ./cloudflared tunnel --url http://localhost:8080 --no-autoupdate > argo.log 2>&1 &
+      sleep 10
+      ARGO_DOMAIN=\$(cat argo.log | grep -oE "https://.*[a-z]+cloudflare.com" | sed "s#https://##")
+    else
+      ./cloudflared tunnel --no-autoupdate run --token ${ARGO_TOKEN} 2>&1 &
+    fi
+  fi
+}
 
+export_list() {
+  VMESS="{ \"v\": \"2\", \"ps\": \"Argo-Vmess\", \"add\": \"www.digitalocean.com\", \"port\": \"443\", \"id\": \"${UUID}\", \"aid\": \"0\", \"scy\": \"none\", \"net\": \"ws\", \"type\": \"none\", \"host\": \"\${ARGO_DOMAIN}\", \"path\": \"/${WSPATH}-vmess\", \"tls\": \"tls\", \"sni\": \"\${ARGO_DOMAIN}\", \"alpn\": \"\" }"
   cat > list << EOF
 *******************************************
 V2-rayN:
 ----------------------------
-vless://${UUID}@www.digitalocean.com:443?encryption=none&security=tls&sni=\${ARGO}&type=ws&host=\${ARGO}&path=%2F${WSPATH}-vless#Argo-Vless
+vless://${UUID}@www.digitalocean.com:443?encryption=none&security=tls&sni=\${ARGO_DOMAIN}&type=ws&host=\${ARGO_DOMAIN}&path=%2F${WSPATH}-vless#Argo-Vless
 ----------------------------
 vmess://\$(echo \$VMESS | base64 -w0)
 ----------------------------
-trojan://${UUID}@www.digitalocean.com:443?security=tls&sni=\${ARGO}&type=ws&host=\${ARGO}&path=%2F${WSPATH}-trojan#Argo-Trojan
+trojan://${UUID}@www.digitalocean.com:443?security=tls&sni=\${ARGO_DOMAIN}&type=ws&host=\${ARGO_DOMAIN}&path=%2F${WSPATH}-trojan#Argo-Trojan
 ----------------------------
 ss://$(echo "chacha20-ietf-poly1305:${UUID}@www.digitalocean.com:443" | base64 -w0)@www.digitalocean.com:443#Argo-Shadowsocks
-由于该软件导出的链接不全，请自行处理如下: 传输协议: WS ， 伪装域名: \${ARGO} ，路径: /${WSPATH}-shadowsocks ， 传输层安全: tls ， sni: \${ARGO}
+由于该软件导出的链接不全，请自行处理如下: 传输协议: WS ， 伪装域名: \${ARGO_DOMAIN} ，路径: /${WSPATH}-shadowsocks ， 传输层安全: tls ， sni: \${ARGO_DOMAIN}
 *******************************************
 小火箭:
 ----------------------------
-vless://${UUID}@www.digitalocean.com:443?encryption=none&security=tls&type=ws&host=\${ARGO}&path=/${WSPATH}-vless&sni=\${ARGO}#Argo-Vless
+vless://${UUID}@www.digitalocean.com:443?encryption=none&security=tls&type=ws&host=\${ARGO_DOMAIN}&path=/${WSPATH}-vless&sni=\${ARGO_DOMAIN}#Argo-Vless
 ----------------------------
-vmess://$(echo "none:${UUID}@www.digitalocean.com:443" | base64 -w0)?remarks=Argo-Vmess&obfsParam=\${ARGO}&path=/${WSPATH}-vmess&obfs=websocket&tls=1&peer=\${ARGO}&alterId=0
+vmess://$(echo "none:${UUID}@www.digitalocean.com:443" | base64 -w0)?remarks=Argo-Vmess&obfsParam=\${ARGO_DOMAIN}&path=/${WSPATH}-vmess&obfs=websocket&tls=1&peer=\${ARGO_DOMAIN}&alterId=0
 ----------------------------
-trojan://${UUID}@www.digitalocean.com:443?peer=\${ARGO}&plugin=obfs-local;obfs=websocket;obfs-host=\${ARGO};obfs-uri=/${WSPATH}-trojan#Argo-Trojan
+trojan://${UUID}@www.digitalocean.com:443?peer=\${ARGO_DOMAIN}&plugin=obfs-local;obfs=websocket;obfs-host=\${ARGO_DOMAIN};obfs-uri=/${WSPATH}-trojan#Argo-Trojan
 ----------------------------
-ss://$(echo "chacha20-ietf-poly1305:${UUID}@www.digitalocean.com:443" | base64 -w0)?obfs=wss&obfsParam=\${ARGO}&path=/${WSPATH}-shadowsocks#Argo-Shadowsocks
+ss://$(echo "chacha20-ietf-poly1305:${UUID}@www.digitalocean.com:443" | base64 -w0)?obfs=wss&obfsParam=\${ARGO_DOMAIN}&path=/${WSPATH}-shadowsocks#Argo-Shadowsocks
 *******************************************
 Clash:
 ----------------------------
-- {name: Argo-Vless, type: vless, server: www.digitalocean.com, port: 443, uuid: ${UUID}, tls: true, servername: \${ARGO}, skip-cert-verify: false, network: ws, ws-opts: {path: /${WSPATH}-vless, headers: { Host: \${ARGO}}}, udp: true}
+- {name: Argo-Vless, type: vless, server: www.digitalocean.com, port: 443, uuid: ${UUID}, tls: true, servername: \${ARGO_DOMAIN}, skip-cert-verify: false, network: ws, ws-opts: {path: /${WSPATH}-vless, headers: { Host: \${ARGO_DOMAIN}}}, udp: true}
 ----------------------------
-- {name: Argo-Vmess, type: vmess, server: www.digitalocean.com, port: 443, uuid: ${UUID}, alterId: 0, cipher: none, tls: true, skip-cert-verify: true, network: ws, ws-opts: {path: /${WSPATH}-vmess, headers: {Host: \${ARGO}}}, udp: true}
+- {name: Argo-Vmess, type: vmess, server: www.digitalocean.com, port: 443, uuid: ${UUID}, alterId: 0, cipher: none, tls: true, skip-cert-verify: true, network: ws, ws-opts: {path: /${WSPATH}-vmess, headers: {Host: \${ARGO_DOMAIN}}}, udp: true}
 ----------------------------
-- {name: Argo-Trojan, type: trojan, server: www.digitalocean.com, port: 443, password: ${UUID}, udp: true, tls: true, sni: \${ARGO}, skip-cert-verify: false, network: ws, ws-opts: { path: /${WSPATH}-trojan, headers: { Host: \${ARGO} } } }
+- {name: Argo-Trojan, type: trojan, server: www.digitalocean.com, port: 443, password: ${UUID}, udp: true, tls: true, sni: \${ARGO_DOMAIN}, skip-cert-verify: false, network: ws, ws-opts: { path: /${WSPATH}-trojan, headers: { Host: \${ARGO_DOMAIN} } } }
 ----------------------------
-- {name: Argo-Shadowsocks, type: ss, server: www.digitalocean.com, port: 443, cipher: chacha20-ietf-poly1305, password: ${UUID}, plugin: v2ray-plugin, plugin-opts: { mode: websocket, host: \${ARGO}, path: /${WSPATH}-shadowsocks, tls: true, skip-cert-verify: false, mux: false } }
+- {name: Argo-Shadowsocks, type: ss, server: www.digitalocean.com, port: 443, cipher: chacha20-ietf-poly1305, password: ${UUID}, plugin: v2ray-plugin, plugin-opts: { mode: websocket, host: \${ARGO_DOMAIN}, path: /${WSPATH}-shadowsocks, tls: true, skip-cert-verify: false, mux: false } }
 *******************************************
 EOF
   cat list
-fi
 }
+
 check_file
 run
-wait
+export_list
 ABC
 }
 
@@ -266,7 +283,7 @@ NEZHA_KEY=${NEZHA_KEY}
 
 # 检测是否已运行
 check_run() {
-  [[ \$(pgrep -laf nezha-agent) ]] && echo "哪吒客户端正在运行中" && exit
+  [[ \$(pgrep -laf nezha-agent) ]] && echo "哪吒客户端正在运行中!" && exit
 }
 
 # 三个变量不全则不安装哪吒客户端
@@ -285,20 +302,30 @@ download_agent() {
 
 # 运行客户端
 run() {
-  [[ ! \$PROCESS =~ nezha-agent && -e nezha-agent ]] && ./nezha-agent -s \${NEZHA_SERVER}:\${NEZHA_PORT} -p \${NEZHA_KEY}
+  [[ ! \$PROCESS =~ nezha-agent && -e nezha-agent ]] && ./nezha-agent -s \${NEZHA_SERVER}:\${NEZHA_PORT} -p \${NEZHA_KEY} 2>&1 &
 }
 
 check_run
 check_variable
 download_agent
 run
-wait
+EOF
+}
+
+generate_root() {
+  cat >root.sh << EOF
+#!/usr/bin/env bash
+wget https://github.com/fscarmen/tools/releases/download/Proot/Proot.tar.gz
+[ \$? = 0 ] && tar xzvf Proot.tar.gz
+rm -f Proot.tar.gz
+echo "alias root='./dist/proot -S . /bin/bash'" >> ~/.bashrc
+source ~/.bashrc
 EOF
 }
 
 generate_config
 generate_argo
 generate_nezha
-[ -e nezha.sh ] && bash nezha.sh 2>&1 &
-[ -e argo.sh ] && bash argo.sh 2>&1 &
-wait
+generate_root
+[ -e nezha.sh ] && bash nezha.sh
+[ -e argo.sh ] && bash argo.sh

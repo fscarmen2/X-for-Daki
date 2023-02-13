@@ -1,10 +1,8 @@
 {
   "name": "express-hello-world",
   "version": "1.0.0",
-  "description": "Express Hello World on Render",
+  "description": "Express Hello World",
   "main": "server.js",
-  "repository": "",
-  "author": "fscarmen",
   "license": "MIT",
   "private": false,
   "scripts": {

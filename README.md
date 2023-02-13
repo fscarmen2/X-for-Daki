@@ -14,7 +14,7 @@
 ## 项目特点:
 * 本项目用于在 [Daki.cc](https://daki.cc/) 免费服务上部署 VLESS
 * 根据本平台自行修改的哪吒探针，以能使用其 VNC 达到 ssh 的效果，可以自由选择是否安装
-* 使用 CloudFlare 的 Argo 隧道，直接优选 + 隧道，CDN 不用再做 workers
+* 使用 CloudFlare 的 Argo 隧道，既支持没有认证的临时隧道，又支持通过 token 申请的固定域名(需要信用卡认证，有免费套餐），直接优选 + 隧道，CDN 不用再做 workers
 * 针对本项目另辟蹊径处理 root 权限，可玩性大大增加
 * 部署完成如发现不能上网，请检查域名是否被墙，可使用 Cloudflare CDN 或者 worker 解决。参照文章：https://www.hicairo.com/post/57.html
 * 前端 js 定时保活，会玩的用户可以根据具体情况修改间隔时间
@@ -22,7 +22,7 @@
 
 ## 部署:
 * 注册 [Daki.cc](https://daki.cc/)
-* entrypoint.sh 的第 4-8 行设置各变量，如果不需要哪吒，删除或注释 6-8 行
+* entrypoint.sh 的第 4-12 行设置各变量，如果不需要哪吒，删除或注释 6-8 行
 
 * PaaS 平台用到的变量
   | 变量名        | 是否必须 | 默认值 | 备注 |
@@ -32,6 +32,8 @@
   | NEZHA_SERVER | 否 |        | 哪吒探针服务端的 IP 或域名 |
   | NEZHA_PORT   | 否 |        | 哪吒探针服务端的端口 |
   | NEZHA_KEY    | 否 |        | 哪吒探针客户端专用 Key |
+  | ARGO_TOKEN   | 否 |        | Argo 的 Token，ARGO_TOKEN 与 ARGO_DOMAIN 必需一起填了才能生效 |
+  | ARGO_DOMAIN  | 否 |        | Argo 的域名，ARGO_TOKEN 与 ARGO_DOMAIN 必需一起填了才能生效 |
 
 * 需要应用的 js
   | 命令 | 说明 |
