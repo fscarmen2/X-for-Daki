@@ -6,6 +6,8 @@
 
 - [项目特点](README.md#项目特点)
 - [部署](README.md#部署)
+- [Argo Json 的获取](README.md#argo-json-的获取)
+- [Argo Token 的获取](README.md#argo-token-的获取)
 - [鸣谢下列作者的文章和项目](README.md#鸣谢下列作者的文章和项目)
 - [免责声明](README.md#免责声明)
 
@@ -13,8 +15,10 @@
 
 ## 项目特点:
 * 本项目用于在 [Daki.cc](https://daki.cc/) 免费服务上部署 VLESS
-* 根据本平台自行修改的哪吒探针，以能使用其 VNC 达到 ssh 的效果，可以自由选择是否安装
-* 使用 CloudFlare 的 Argo 隧道，既支持没有认证的临时隧道，又支持通过 token 申请的固定域名(需要信用卡认证，有免费套餐），直接优选 + 隧道，CDN 不用再做 workers
+* 解锁 ChatGPT
+* 在浏览器查看系统各项信息，方便直观
+* 使用 CloudFlare 的 Argo 隧道，使用TLS加密通信，可以将应用程序流量安全地传输到Cloudflare网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁。
+* 集成哪吒探针，可以自由选择是否安装，支持 SSL/TLS 模式，适配 Nezha over Argo 项目: https://github.com/fscarmen2/Argo-Nezha-Service-Container
 * 针对本项目另辟蹊径处理 root 权限，可玩性大大增加
 * 部署完成如发现不能上网，请检查域名是否被墙，可使用 Cloudflare CDN 或者 worker 解决。参照文章：https://www.hicairo.com/post/57.html
 * 前端 js 定时保活，会玩的用户可以根据具体情况修改间隔时间
@@ -22,26 +26,38 @@
 
 ## 部署:
 * 注册 [Daki.cc](https://daki.cc/)
-* entrypoint.sh 的第 4-12 行设置各变量，如果不需要哪吒，删除或注释 6-8 行
 
-* PaaS 平台用到的变量
+### PaaS 平台用到的变量
+
+* 在 `server.js` 文件的第1、2行修改查询网页的用户名和密码
+  | 变量名        | 是否必须 | 默认值 | 备注 |
+  | ------------ | ------ | ------ | ------ |
+  | WEB_USERNAME | 是 | admin | 网页的用户名 |
+  | WEB_PASSWORD | 是 | password | 网页的密码 |
+​
+<img width="939" alt="image" src="https://user-images.githubusercontent.com/92626977/221387298-4183a1d6-ae14-45f9-b498-1789a4f7117e.png">
+
+* entrypoint.sh 的第 4-15 行设置各变量，如果不需要哪吒，删除或注释 8-11 行
+
   | 变量名        | 是否必须 | 默认值 | 备注 |
   | ------------ | ------ | ------ | ------ |
   | UUID         | 否 | de04add9-5c68-8bab-950c-08cd5320df18 | 可在线生成 https://www.zxgj.cn/g/uuid |
   | WSPATH       | 否 | argo | 勿以 / 开头，各协议路径为 `/WSPATH-协议`，如 `/argo-vless`,`/argo-vmess`,`/argo-trojan`,`/argo-shadowsocks` |
+
   | NEZHA_SERVER | 否 |        | 哪吒探针服务端的 IP 或域名 |
   | NEZHA_PORT   | 否 |        | 哪吒探针服务端的端口 |
   | NEZHA_KEY    | 否 |        | 哪吒探针客户端专用 Key |
-  | ARGO_TOKEN   | 否 |        | Argo 的 Token，ARGO_TOKEN 与 ARGO_DOMAIN 必需一起填了才能生效 |
-  | ARGO_DOMAIN  | 否 |        | Argo 的域名，ARGO_TOKEN 与 ARGO_DOMAIN 必需一起填了才能生效 |
-
-* 需要应用的 js
+  | NEZHA_TLS    | 否 |        | 哪吒探针是否启用 SSL/TLS 加密 ，如不启用请删除，如要启用填"1" |
+  | ARGO_AUTH    | 否 |        | Argo 的 Token 或者 json 值，其中 json 可以通过以下网站，在不需绑卡的情况下轻松获取: https://fscarmen.cloudflare.now.cc/ |
+  | ARGO_DOMAIN  | 否 |        | Argo 的域名，须与 ARGO_DOMAIN 必需一起填了才能生效 |
+  
+* 路径（path）
   | 命令 | 说明 |
   | ---- |------ |
-  | <URL>/list | 查看节点数据 |
-  | <URL>/status | 查看后台进程 |
-  | <URL>/listen | 查看后台监听端口 |
-  | <URL>/root | 开启 root，需要手动，以后入系统输入`root`即可进入 root 模式 |
+  | < URL >/list | 查看节点数据 |
+  | < URL >/status | 查看后台进程 |
+  | < URL >/listen | 查看后台监听端口 |
+  | < URL >/root | 开启 root，需要手动，以后入系统输入`root`即可进入 root 模式 |
 
 <img width="1658" alt="image" src="https://user-images.githubusercontent.com/62703343/212581034-4f0d9855-f223-43a1-aebe-f03b53aa56c3.png">
 
@@ -78,6 +94,26 @@
 <img width="1198" alt="image" src="https://user-images.githubusercontent.com/92626977/213434139-252d8226-e29e-4c16-93d8-ec1ca8439a25.png">
 
 <img width="812" alt="image" src="https://user-images.githubusercontent.com/92626977/216778002-a3361735-ccee-44fb-926d-1773dce62e00.png">
+
+
+## Argo Json 的获取
+
+用户可以通过 Cloudflare Json 生成网轻松获取: https://fscarmen.cloudflare.now.cc
+
+![image](https://user-images.githubusercontent.com/62703343/224388718-6adf22d0-01d3-46a0-8063-bc0a2210795f.png)
+
+如想手动，可以参考，以 Debian 为例，需要用到的命令，[Deron Cheng - CloudFlare Argo Tunnel 试用](https://zhengweidong.com/try-cloudflare-argo-tunnel)
+
+
+## Argo Token 的获取
+
+详细教程: [群晖套件：Cloudflare Tunnel 内网穿透中文教程 支持DSM6、7](https://imnks.com/5984.html)
+
+<img width="1409" alt="image" src="https://user-images.githubusercontent.com/92626977/218253461-c079cddd-3f4c-4278-a109-95229f1eb299.png">
+
+<img width="1619" alt="image" src="https://user-images.githubusercontent.com/92626977/218253838-aa73b63d-1e8a-430e-b601-0b88730d03b0.png">
+
+<img width="1155" alt="image" src="https://user-images.githubusercontent.com/92626977/218253971-60f11bbf-9de9-4082-9e46-12cd2aad79a1.png">
 
 
 ## 鸣谢下列作者的文章和项目:

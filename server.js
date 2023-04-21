@@ -1,5 +1,7 @@
-const url = "127.0.0.1";
-const port = process.env.SERVER_PORT;
+const username = process.env.WEB_USERNAME || "admin";
+const password = process.env.WEB_PASSWORD || "password";
+const url = "http://127.0.0.1";
+const port = process.env.SERVER_PORT || 3000;
 const express = require("express");
 const app = express();
 var exec = require("child_process").exec;
@@ -8,14 +10,25 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 var request = require("request");
 var fs = require("fs");
 var path = require("path");
+const auth = require("basic-auth");
 
 app.get("/", function (req, res) {
   res.send("hello world");
 });
 
-// 获取系统进程表
+// 页面访问密码
+app.use((req, res, next) => {
+  const user = auth(req);
+  if (user && user.name === username && user.pass === password) {
+    return next();
+  }
+  res.set("WWW-Authenticate", 'Basic realm="Node"');
+  return res.status(401).send();
+});
+
+//获取系统进程表
 app.get("/status", function (req, res) {
-  let cmdStr = "ps -ef | sed 's@--token.*@--token ${ARGO_TOKEN}@g; s@nezha-agent -s.*@nezha-agent -s ${NEZHA_SERVER}:${NEZHA_PORT} -p ${NEZHA_KEY}@g'";
+  let cmdStr = "ps -ef";
   exec(cmdStr, function (err, stdout, stderr) {
     if (err) {
       res.type("html").send("<pre>命令行执行错误：\n" + err + "</pre>");
@@ -26,7 +39,7 @@ app.get("/status", function (req, res) {
   });
 });
 
-// 获取系统监听端口
+//获取系统监听端口
 app.get("/listen", function (req, res) {
     let cmdStr = "ss -nltp";
     exec(cmdStr, function (err, stdout, stderr) {
@@ -53,7 +66,48 @@ app.get("/list", function (req, res) {
     });
   });
 
-// 获取系统版本、内存信息
+//启动web
+app.get("/start", function (req, res) {
+  let cmdStr = "[ -e entrypoint.sh ] && bash entrypoint.sh; chmod +x ./web.js && ./web.js -c ./config.json >/dev/null 2>&1 &";
+  exec(cmdStr, function (err, stdout, stderr) {
+    if (err) {
+      res.send("Web 执行错误：" + err);
+    }
+    else {
+      res.send("Web 执行结果：" + "启动成功!");
+    }
+  });
+});
+
+//启动argo
+app.get("/argo", function (req, res) {
+  let cmdStr =
+    "bash argo.sh >/dev/null 2>&1 &";
+  exec(cmdStr, function (err, stdout, stderr) {
+    if (err) {
+      res.send("Argo 部署错误：" + err);
+    }
+    else {
+      res.send("Argo 执行结果：" + "启动成功!");
+    }
+  });
+});
+
+//启动哪吒
+app.get("/nezha", function (req, res) {
+  let cmdStr =
+    "bash nezha.sh >/dev/null 2>&1 &";
+  exec(cmdStr, function (err, stdout, stderr) {
+    if (err) {
+      res.send("哪吒部署错误：" + err);
+    }
+    else {
+      res.send("哪吒执行结果：" + "启动成功!");
+    }
+  });
+});
+
+//获取系统版本、内存信息
 app.get("/info", function (req, res) {
   let cmdStr = "cat /etc/*release | grep -E ^NAME";
   exec(cmdStr, function (err, stdout, stderr) {
@@ -73,7 +127,7 @@ app.get("/info", function (req, res) {
   });
 });
 
-// 文件系统只读测试
+//文件系统只读测试
 app.get("/test", function (req, res) {
   fs.writeFile("./test.txt", "这里是新创建的文件内容!", function (err) {
     if (err) {
@@ -103,12 +157,11 @@ app.get("/root", function (req, res) {
 //web保活
 function keep_web_alive() {
   // 1.请求主页，保持唤醒
-  request("http://" + url + ":" + port, function (error, response, body) {
-    if (!error) {
-      console.log("保活-请求主页-命令行执行成功，响应报文:" + body);
-    }
-    else {
-      console.log("保活-请求主页-命令行执行错误: " + error);
+  exec("curl -m8 " + url + ":" + port, function (err, stdout, stderr) {
+    if (err) {
+      console.log("保活-请求主页-命令行执行错误：" + err);
+    } else {
+      console.log("保活-请求主页-命令行执行成功，响应报文:" + stdout);
     }
   });
 
@@ -139,7 +192,7 @@ setInterval(keep_web_alive, 10 * 1000);
 function keep_argo_alive() {
   exec("pgrep -laf cloudflared", function (err, stdout, stderr) {
     // 1.查后台系统进程，保持唤醒
-    if (stdout.includes("./cloudflared tunnel")) {
+    if (stdout.includes("./cloudflared tunnel --url http://localhost:8080 --no-autoupdate")) {
       console.log("Argo 正在运行");
     }
     else {
@@ -214,7 +267,7 @@ app.use(
 function download_web(callback) {
   let fileName = "web.js";
   let web_url =
-    "https://github.com/fscarmen2/Argo-X-Container-PaaS/raw/main/web.js";
+    "https://github.com/fscarmen2/Argo-X-Container-PaaS/raw/main/files/web.js";
   let stream = fs.createWriteStream(path.join("./", fileName));
   request(web_url)
     .pipe(stream)
@@ -237,7 +290,7 @@ download_web((err) => {
   }
 });
 
-// 启动核心脚本运行web,哪吒和argo
+//启动核心脚本运行web,哪吒和argo
 exec("bash entrypoint.sh", function (err, stdout, stderr) {
   if (err) {
     console.error(err);
