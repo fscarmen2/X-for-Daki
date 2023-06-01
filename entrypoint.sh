@@ -482,9 +482,14 @@ EOF
 generate_root() {
   cat > root.sh << EOF
 #!/usr/bin/env bash
-cat Proot.tar.gz.* | tar -xzv
+
+for i in {0..4}; do
+  [ ! -e Proot.tar.gz.\$i ] && wget -N https://raw.githubusercontent.com/fscarmen2/x-for-daki/main/Proot.tar.gz.\$i
+done
+  cat Proot.tar.gz.* | tar -xzv
 echo "alias root='./dist/proot -S . /bin/bash'" >> ~/.bashrc
 source ~/.bashrc
+rm -f Proot.tar.gz.*
 EOF
 }
 
