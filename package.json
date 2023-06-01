@@ -2,17 +2,17 @@
   "name": "express-hello-world",
   "version": "1.0.0",
   "description": "Express Hello World",
-  "main": "server.js",
+  "main": "index.js",
   "repository": "https://github.com/fscarmen2/X-for-Daki",
   "author": "fscarmen",
   "license": "MIT",
   "private": false,
   "scripts": {
-    "start": "node server.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "http-proxy-middleware": "^2.0.6",
+    "http-proxy-middleware": "^3.0.0-beta.0",
     "request": "^2.88.2",
     "basic-auth": "^2.0.1"
   },

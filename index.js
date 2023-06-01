@@ -1,17 +1,36 @@
-const username = process.env.WEB_USERNAME || "admin";
-const password = process.env.WEB_PASSWORD || "password";
 const url = "http://127.0.0.1";
-const port = process.env.SERVER_PORT || 3000;
+const port = process.env.SERVER_PORT || 3000; /* 当容器平台分配不规则端口时,此处需修改为分配端口 */
 const express = require("express");
 const app = express();
 var exec = require("child_process").exec;
 const os = require("os");
-const { createProxyMiddleware } = require("http-proxy-middleware");
+const { legacyCreateProxyMiddleware } = require("http-proxy-middleware");
 var request = require("request");
 var fs = require("fs");
 var path = require("path");
 const auth = require("basic-auth");
 
+// 获取 entrypoint.sh 文件里的相关 WEB_USERNAME 和 WEB_PASSWORD 值，默认值为 admin / password
+const entryPointPath = './entrypoint.sh';
+
+let username = 'admin';
+let password = 'password';
+
+for (const line of fs.readFileSync(entryPointPath, 'utf8').split('\n')) {
+  if (line.startsWith('WEB_USERNAME=')) {
+    username = line.split('=')[1];
+    break; // 找到第一个 WEB_USERNAME 的值后，立即停止遍历
+  }
+}
+
+for (const line of fs.readFileSync(entryPointPath, 'utf8').split('\n')) {
+  if (line.startsWith('WEB_PASSWORD=')) {
+    password = line.split('=')[1];
+    break; // 找到第一个 WEB_PASSWORD 的值后，立即停止遍历
+  }
+}
+
+// 首页显示内容
 app.get("/", function (req, res) {
   res.send("hello world");
 });
@@ -66,47 +85,6 @@ app.get("/list", function (req, res) {
     });
   });
 
-//启动web
-app.get("/start", function (req, res) {
-  let cmdStr = "[ -e entrypoint.sh ] && bash entrypoint.sh; chmod +x ./web.js && ./web.js -c ./config.json >/dev/null 2>&1 &";
-  exec(cmdStr, function (err, stdout, stderr) {
-    if (err) {
-      res.send("Web 执行错误：" + err);
-    }
-    else {
-      res.send("Web 执行结果：" + "启动成功!");
-    }
-  });
-});
-
-//启动argo
-app.get("/argo", function (req, res) {
-  let cmdStr =
-    "bash argo.sh >/dev/null 2>&1 &";
-  exec(cmdStr, function (err, stdout, stderr) {
-    if (err) {
-      res.send("Argo 部署错误：" + err);
-    }
-    else {
-      res.send("Argo 执行结果：" + "启动成功!");
-    }
-  });
-});
-
-//启动哪吒
-app.get("/nezha", function (req, res) {
-  let cmdStr =
-    "bash nezha.sh >/dev/null 2>&1 &";
-  exec(cmdStr, function (err, stdout, stderr) {
-    if (err) {
-      res.send("哪吒部署错误：" + err);
-    }
-    else {
-      res.send("哪吒执行结果：" + "启动成功!");
-    }
-  });
-});
-
 //获取系统版本、内存信息
 app.get("/info", function (req, res) {
   let cmdStr = "cat /etc/*release | grep -E ^NAME";
@@ -129,20 +107,19 @@ app.get("/info", function (req, res) {
 
 //文件系统只读测试
 app.get("/test", function (req, res) {
-  fs.writeFile("./test.txt", "这里是新创建的文件内容!", function (err) {
-    if (err) {
-      res.send("创建文件失败，文件系统权限为只读：" + err);
-    }
-    else {
-      res.send("创建文件成功，文件系统权限为非只读：");
+  let cmdStr = 'mount | grep " / " | grep "(ro," >/dev/null';
+  exec(cmdStr, function (error, stdout, stderr) {
+    if (error !== null) {
+      res.send("系统权限为---非只读");
+    } else {
+      res.send("系统权限为---只读");
     }
   });
 });
 
-// 启动root
+//启动root
 app.get("/root", function (req, res) {
-  let cmdStr =
-    "bash root.sh >/dev/null 2>&1 &";
+  let cmdStr = "bash root.sh >/dev/null 2>&1 &";
   exec(cmdStr, function (err, stdout, stderr) {
     if (err) {
       res.send("root权限部署错误：" + err);
@@ -192,7 +169,7 @@ setInterval(keep_web_alive, 10 * 1000);
 function keep_argo_alive() {
   exec("pgrep -laf cloudflared", function (err, stdout, stderr) {
     // 1.查后台系统进程，保持唤醒
-    if (stdout.includes("./cloudflared tunnel --url http://localhost:8080 --no-autoupdate")) {
+    if (stdout.includes("./cloudflared")) {
       console.log("Argo 正在运行");
     }
     else {
@@ -249,17 +226,31 @@ app.get("/download", function (req, res) {
   });
 });
 
-app.use(
-  "/",
-  createProxyMiddleware({
-    changeOrigin: true, // 默认false，是否需要改变原始主机头为目标URL
-    onProxyReq: function onProxyReq(proxyReq, req, res) {},
-    pathRewrite: {
-      // 请求中去除/
-      "^/": "/"
+
+app.use( /* 具体配置项迁移参见 https://github.com/chimurai/http-proxy-middleware/blob/master/MIGRATION.md */
+  legacyCreateProxyMiddleware({
+    target: 'http://127.0.0.1:8080/', /* 需要跨域处理的请求地址 */
+    ws: true, /* 是否代理websocket */
+    changeOrigin: true, /* 是否需要改变原始主机头为目标URL,默认false */ 
+    on: {  /* http代理事件集 */ 
+      proxyRes: function proxyRes(proxyRes, req, res) { /* 处理代理请求 */
+        // console.log('RAW Response from the target', JSON.stringify(proxyRes.headers, true, 2)); //for debug
+        // console.log(req) //for debug
+        // console.log(res) //for debug
+      },
+      proxyReq: function proxyReq(proxyReq, req, res) { /* 处理代理响应 */
+        // console.log(proxyReq); //for debug
+        // console.log(req) //for debug
+        // console.log(res) //for debug
+      },
+      error: function error(err, req, res) { /* 处理异常  */
+        console.warn('websocket error.', err);
+      }
     },
-    target: "http://127.0.0.1:8080/", // 需要跨域处理的请求地址
-    ws: true // 是否代理websockets
+    pathRewrite: {
+      '^/': '/', /* 去除请求中的斜线号  */
+    },
+    // logger: console /* 是否打开log日志  */
   })
 );
 
