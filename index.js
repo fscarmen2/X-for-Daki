@@ -30,6 +30,9 @@ for (const line of fs.readFileSync(entryPointPath, 'utf8').split('\n')) {
   }
 }
 
+console.log(`Username is: ${username}`);
+console.log(`Password is: ${password}`);
+
 // 首页显示内容
 app.get("/", function (req, res) {
   res.send("hello world");
